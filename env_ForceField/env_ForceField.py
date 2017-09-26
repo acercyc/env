@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 
 
 def dist(a, b):
+    """ compute distance between a and b. a, b can be arrays"""
     return np.sum((a - b) ** 2, axis=1) ** (1 / 2)
 
 
 def symRange(v, centre=0):
+    """ Find a mirror point with respect to a centre point """
     v -= centre
     if np.abs(np.max(v)) > np.abs(np.min(v)):
         lim = npa([-np.abs(np.max(v)), np.abs(np.max(v))])
@@ -26,17 +28,17 @@ class ForceField:
         """
         You can add/locate attractors/repulsor and change initial state after the object instance creation:
         env = ForceField()
-        
+
         # attractor: [x, y, force]
-        # force > 0: attraction, Force < 0: repulsion         
+        # force > 0: attraction, Force < 0: repulsion
         env.attractors = npa([[0.70, 0.70, -0.02],
                                         [0.60, 0.60, -0.02],
-                                        [0.78, 0.58, -0.02],  
+                                        [0.78, 0.58, -0.02],
                                         [0.20, 0.25,  0.04]])
 
          # initial state  x, y, vx, vy
         env.initState = npa([25, 30, 0, 0])
-        
+
         :param dt: simulation time step
         :param map_size: map size
         :param minDist: virual miminal distance between agent and attractors
@@ -48,7 +50,7 @@ class ForceField:
         self.attractors = npa([[0.70, 0.70, -0.02],
                                [0.60, 0.60, -0.02],
                                [0.78, 0.58, -0.02],
-                               [0.20, 0.25,  0.04]])
+                               [0.20, 0.25, 0.04]])
 
         self.initState = npa([0.25, 0.30, 0, 0])  # initial state  x, y, vx, vy
         self.state = self.initState
@@ -57,9 +59,9 @@ class ForceField:
         self.state = self.initState
 
     def step(self, a):
-        """
-        :param a: action. numpy array (x, y)
-        :return: new state 
+        """ Move one simulation step forward
+        :param a: a numpy array (Fx, Fy). Apply force to x and y direction
+        :return: new states (x, y, Vx, Vy)
         """
 
         # arrange array
@@ -124,7 +126,11 @@ class ForceField:
         return ixy_unique, xy_unique
 
     def gridVisitingFreq(self, hist_xy, nBin=(21, 21)):
-        """ count xy visiting time"""
+        """ count xy visiting frequency
+        :param hist_xy: 2D numpy array of (x, y) data
+        :param nBin: (xBinNum, yBinNum)
+        :return: 2D numpy array
+        """
         binx = np.linspace(0, self.map_size[0], nBin[0])
         biny = np.linspace(0, self.map_size[1], nBin[1])
         ix = np.digitize(hist_xy[:, 0], binx) - 1
@@ -142,8 +148,8 @@ class ForceField:
 
     def cal_coverageRate(self, hist_xy, nBin=(21, 21)):
         """
-        calculate coverage rate from position hisotyr (x, y)
-        :param hist_xy: 2D numpy array: row: sample; column: x, y
+        calculate coverage rate from position history (x, y)
+        :param hist_xy: n x 2 numpy array: row: sample; column: x, y
         :param nBin: number of bins for each dimantion to discretize the whole map
         :return: rate
         """
@@ -151,32 +157,38 @@ class ForceField:
         coverageRate = ixy_unique.shape[0] / (nBin[0] * nBin[1])
         return coverageRate
 
-    def plot_coverage(self, hist_xy, nBin=(21, 21), marker_size=None):
+    def plot_coverage(self, hist_xy, nBin=(21, 21), marker_size=60):
         """
         Plot visited xy areas
-        :param hist_xy: 
+        :param hist_xy: n x 2 xy numpy array
         :param nBin: 
         :param marker_size: 
-        :return: 
         """
         _, xy_unique = self.find_uniqueGrid(hist_xy, nBin)
-        if marker_size is None:
-            marker_size = 60
         plt.scatter(xy_unique[:, 0], xy_unique[:, 1],
                     marker='s', c='lightgray', edgecolors='silver', s=marker_size, alpha=0.7)
         plt.xlim([0, self.map_size[0]])
         plt.ylim([0, self.map_size[1]])
 
-    def plot_coverage_freq(self, hist_xy, nBin=(21, 21), marker_size=None):
+    def plot_coverage_freq(self, hist_xy, nBin=(21, 21), marker_size=60):
+
+        """
+        Plot x, y state coverage coloured by normalised frequency
+        :param hist_xy: n x 2 xy numpy array
+        :param nBin:
+        :param marker_size:
+        """
         ic = self.gridVisitingFreq(hist_xy, nBin)
-        if marker_size is None:
-            marker_size = 60
         plt.scatter(ic[:, 0], ic[:, 1],
                     marker='s', c=ic[:, 2], edgecolors='silver', s=marker_size, alpha=0.6, cmap='YlGn')
         plt.xlim([0, self.map_size[0]])
         plt.ylim([0, self.map_size[1]])
 
-    def demo(self, nStep=1000, isRandomWalk=False, isUsingJupyter=False, pause=0.01):
+    def demo(self, nStep=1000, isRandomWalk=True, isUsingJupyter=False, pause=0.01):
+        """
+        Demostration
+        :return: state history (x, y, Vx, Vy)
+        """
         plt.ion()
         fig = plt.figure(figsize=(5, 5))
         h_state = self.state[None]
@@ -193,8 +205,10 @@ class ForceField:
                 plt.pause(pause)
 
             if isRandomWalk:
-                self.step(np.random.uniform(-100, 100, [1, 2]))
+                self.step(np.random.uniform(-1, 1, [1, 2]))
             else:
-                self.step(0)
+                self.step(npa([0, 0]))
 
             h_state = np.vstack([h_state, self.state[None]])
+
+        return h_state
