@@ -1,4 +1,5 @@
 # 1.0 - Acer 2017/07/27 13:27
+# 1.1 - Acer 2017/09/26 15:14
 
 import numpy as np
 from numpy import array as npa
